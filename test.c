@@ -1,5 +1,5 @@
-#define SEXPDF_IMPLEMENTATION
-#include "sexpdf.h"
+#define LD_IMPLEMENTATION
+#include "ld.h"
 #include <stdio.h>
 
 static char *read_file(const char *path, size_t *size) {
@@ -22,35 +22,35 @@ BAIL:
     return result;
 }
 
-void sedf_print_atom(struct sedf_atom *atom, int indent) {
+void ld_print_atom(struct ld_atom *atom, int indent) {
     switch (atom->type) {
-        case SEXPDF_ATOM_NULL:
+        case LD_ATOM_NULL:
             printf("%*snil\n", indent, "");
             break;
-        case SEXPDF_ATOM_BOOLEAN:
+        case LD_ATOM_BOOLEAN:
             printf("%*s%s\n", indent, "", atom->value.boolean ? "true" : "false");
             break;
-        case SEXPDF_ATOM_NUMBER:
+        case LD_ATOM_NUMBER:
             printf("%*s%.6g\n", indent, "", atom->value.number);
             break;
-        case SEXPDF_ATOM_STRING:
+        case LD_ATOM_STRING:
             printf("%*s\"%s\"\n", indent, "", atom->value.string);
             break;
-        case SEXPDF_ATOM_SYMBOL:
+        case LD_ATOM_SYMBOL:
             printf("%*s%s\n", indent, "", atom->value.symbol);
             break;
-        case SEXPDF_ATOM_OBJECT:
+        case LD_ATOM_OBJECT:
             printf("%*s{\n", indent, "");
             for (size_t i = 0; i < atom->value.object->count; i++) {
                 printf("%*s  %s: ", indent, "", atom->value.object->pairs[i].key);
-                sedf_print_atom(atom->value.object->pairs[i].value, indent + 1);
+                ld_print_atom(atom->value.object->pairs[i].value, indent + 1);
             }
             printf("%*s}\n", indent, "");
             break;
-        case SEXPDF_ATOM_ARRAY:
+        case LD_ATOM_ARRAY:
             printf("%*s[\n", indent, "");
             for (size_t i = 0; i < atom->value.array->count; i++)
-                sedf_print_atom(atom->value.array->items[i], indent + 2);
+                ld_print_atom(atom->value.array->items[i], indent + 2);
             printf("%*s]\n", indent, "");
             break;
     }
@@ -60,17 +60,17 @@ int main(int argc, char **argv) {
     size_t size;
     int result = 0;
     size_t count = 0;
-    struct sedf_atom **atoms = NULL;
-    const char *file = read_file("test.sedf", &size);
+    struct ld_atom **atoms = NULL;
+    const char *file = read_file("test.ldf", &size);
     if (!file) {
         result = 1;
         goto BAIL;
     }
 
-    struct sedf_parser parser;
-    sedf_init(&parser, file, size);
-    enum sedf_error_type err = sedf_parse(&parser, (struct sedf_atom**)&atoms, &count);
-    if (err != SEXPDF_OK) {
+    struct ld_parser parser;
+    ld_init(&parser, file, size);
+    enum ld_error_type err = ld_parse(&parser, (struct ld_atom**)&atoms, &count);
+    if (err != LD_OK) {
         printf("Parse error: %d\n", err);
         result = 2;
         goto BAIL;
@@ -79,14 +79,14 @@ int main(int argc, char **argv) {
     printf("Successfully parsed %zu atoms\n", count);
     for (size_t i = 0; i < count; i++) {
         printf("=== ATOM #%zu ===\n", i + 1);
-        sedf_print_atom(atoms[i], 0);
+        ld_print_atom(atoms[i], 0);
         printf("\n");
     }
 
 BAIL:
     if (atoms) {
         for (size_t i = 0; i < count; i++)
-            sedf_free(atoms[i]);
+            ld_free(atoms[i]);
         free(atoms);
     }
     free((void*)file);

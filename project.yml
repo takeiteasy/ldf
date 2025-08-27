@@ -1,4 +1,4 @@
-name: sexpdf
+name: ld
 
 options:
   bundleIdPrefix: io.github.takeiteasy
@@ -11,9 +11,9 @@ settings:
   CLANG_WARN_DOCUMENTATION_COMMENTS: false
 
 targets:
-  sexpdf:
+  ld:
     type: tool
     platform: macOS
     sources:
         - path: zero.c
-        - path: sexpdf_zero.h
+        - path: ldzero.h

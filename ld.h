@@ -1,4 +1,4 @@
-/* sexpdf -- https://github.com/takeiteasy/sexpdf
+/* ldf -- https://github.com/takeiteasy/ldf
 
  Copyright (C) 2025 George Watson
 
@@ -15,8 +15,8 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
-#ifndef SEXPDF_HEADER
-#define SEXPDF_HEADER
+#ifndef LD_HEADER
+#define LD_HEADER
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,40 +25,40 @@ extern "C" {
 #include <stddef.h>
 #include <string.h>
 
-struct sedf_parser {
+struct ld_parser {
     const char *source;
     size_t length;
     size_t position;
 };
 
-struct sedf_pair {
+struct ld_pair {
     const char *key;
-    struct sedf_atom *value;
+    struct ld_atom *value;
 };
 
-struct sedf_object {
-    struct sedf_pair *pairs;
+struct ld_object {
+    struct ld_pair *pairs;
     size_t count;
 };
 
-struct sedf_array {
-    struct sedf_atom **items;
+struct ld_array {
+    struct ld_atom **items;
     size_t count;
 };
 
-struct sedf_atom {
+struct ld_atom {
     enum {
-        SEXPDF_ATOM_NULL,
-        SEXPDF_ATOM_OBJECT,
-        SEXPDF_ATOM_ARRAY,
-        SEXPDF_ATOM_STRING,
-        SEXPDF_ATOM_NUMBER,
-        SEXPDF_ATOM_BOOLEAN,
-        SEXPDF_ATOM_SYMBOL
+        LD_ATOM_NULL,
+        LD_ATOM_OBJECT,
+        LD_ATOM_ARRAY,
+        LD_ATOM_STRING,
+        LD_ATOM_NUMBER,
+        LD_ATOM_BOOLEAN,
+        LD_ATOM_SYMBOL
     } type;
     union {
-        struct sedf_object *object;
-        struct sedf_array *array;
+        struct ld_object *object;
+        struct ld_array *array;
         char *string;
         double number;
         int boolean;
@@ -66,49 +66,49 @@ struct sedf_atom {
     } value;
 };
 
-enum sedf_error_type {
-    SEXPDF_OK = 0,
-    SEXPDF_OUT_OF_MEMORY = -1,
-    SEXPDF_UNEXPECTED_CHAR = -2,
-    SEXPDF_UNEXPECTED_EOF = -3,
-    SEXPDF_UNEXPECTED_TOKEN = -4,
-    SEXPDF_UNKNOWN_ERROR = -5
+enum ld_error_type {
+    LD_OK = 0,
+    LD_OUT_OF_MEMORY = -1,
+    LD_UNEXPECTED_CHAR = -2,
+    LD_UNEXPECTED_EOF = -3,
+    LD_UNEXPECTED_TOKEN = -4,
+    LD_UNKNOWN_ERROR = -5
 };
 
-void sedf_init(struct sedf_parser *parser, const char *source, size_t length);
-enum sedf_error_type sedf_parse(struct sedf_parser *parser, struct sedf_atom **out, size_t *count);
-void sedf_free(struct sedf_atom *atom);
+void ld_init(struct ld_parser *parser, const char *source, size_t length);
+enum ld_error_type ld_parse(struct ld_parser *parser, struct ld_atom **out, size_t *count);
+void ld_free(struct ld_atom *atom);
 
 #if __cplusplus
 }
 #endif
-#endif // SEXPDF_HEADER
+#endif // LD_HEADER
 
-#ifdef SEXPDF_IMPLEMENTATION
-enum sedf_token_type {
-    SEXPDF_TOKEN_SYMBOL = 0,
-    SEXPDF_TOKEN_OBJECT = 1 << 0,
-    SEXPDF_TOKEN_ARRAY = 1 << 1,
-    SEXPDF_TOKEN_STRING = 1 << 2,
-    SEXPDF_TOKEN_PRIMITIVE = 1 << 3,
-    SEXPDF_TOKEN_OBJECT_CLOSE = 1 << 4,
+#ifdef LD_IMPLEMENTATION
+enum ld_token_type {
+    LD_TOKEN_SYMBOL = 0,
+    LD_TOKEN_OBJECT = 1 << 0,
+    LD_TOKEN_ARRAY = 1 << 1,
+    LD_TOKEN_STRING = 1 << 2,
+    LD_TOKEN_PRIMITIVE = 1 << 3,
+    LD_TOKEN_OBJECT_CLOSE = 1 << 4,
 };
 
-struct sedf_token {
-    enum sedf_token_type type;
+struct ld_token {
+    enum ld_token_type type;
     const char *start;
     size_t length;
 };
 
-static int is_eof(struct sedf_parser *parser) {
+static int is_eof(struct ld_parser *parser) {
     return parser->position >= parser->length;
 }
 
-static void consume(struct sedf_parser *parser) {
+static void consume(struct ld_parser *parser) {
     parser->position++;
 }
 
-static enum sedf_error_type skip_whitespace(struct sedf_parser *parser) {
+static enum ld_error_type skip_whitespace(struct ld_parser *parser) {
     while (!is_eof(parser))
         switch (parser->source[parser->position]) {
             case ' ':
@@ -118,20 +118,20 @@ static enum sedf_error_type skip_whitespace(struct sedf_parser *parser) {
                 consume(parser);
                 break;
             default:
-                return SEXPDF_OK;
+                return LD_OK;
         }
-    return SEXPDF_OK;
+    return LD_OK;
 }
 
-static char cursor(struct sedf_parser *parser) {
+static char cursor(struct ld_parser *parser) {
     return is_eof(parser) ? '\0' : parser->source[parser->position];
 }
 
-static char* cursor_ptr(struct sedf_parser *parser) {
+static char* cursor_ptr(struct ld_parser *parser) {
     return is_eof(parser) ? NULL : (char*)&parser->source[parser->position];
 }
 
-static char peek(struct sedf_parser *parser) {
+static char peek(struct ld_parser *parser) {
     return is_eof(parser) || parser->position + 1 >= parser->length ? '\0' : parser->source[parser->position + 1];
 }
 
@@ -169,45 +169,45 @@ static int is_valid_lisp_symbol_char(char c) {
     }
 }
 
-void create_token(struct sedf_token *token, enum sedf_token_type type, const char *start, size_t length) {
+void create_token(struct ld_token *token, enum ld_token_type type, const char *start, size_t length) {
     token->type = type;
     token->start = start;
     token->length = length;
 }
 
-enum sedf_error_type sedf_next(struct sedf_parser *parser, struct sedf_token *out) {
-    enum sedf_error_type err = SEXPDF_OK;
-    if ((err = skip_whitespace(parser)) != SEXPDF_OK)
+enum ld_error_type ld_next(struct ld_parser *parser, struct ld_token *out) {
+    enum ld_error_type err = LD_OK;
+    if ((err = skip_whitespace(parser)) != LD_OK)
         goto BAIL;
     char c = cursor(parser);
     switch (c) {
         case ';': // skip comments and advance to the next line
             while (!is_eof(parser) && cursor(parser) != '\n' && cursor(parser) != '\r')
                 consume(parser);
-            return sedf_next(parser, out);
+            return ld_next(parser, out);
         case '(':
-            create_token(out, SEXPDF_TOKEN_OBJECT, cursor_ptr(parser), 1);
+            create_token(out, LD_TOKEN_OBJECT, cursor_ptr(parser), 1);
             consume(parser);
             break;
         case ')':
-            create_token(out, SEXPDF_TOKEN_OBJECT_CLOSE, cursor_ptr(parser), 1);
+            create_token(out, LD_TOKEN_OBJECT_CLOSE, cursor_ptr(parser), 1);
             consume(parser);
             break;
         case '"':
-            create_token(out, SEXPDF_TOKEN_STRING, cursor_ptr(parser), 1);
+            create_token(out, LD_TOKEN_STRING, cursor_ptr(parser), 1);
             consume(parser);
             break;
         case '#':
-            create_token(out, SEXPDF_TOKEN_ARRAY, cursor_ptr(parser), 1);
+            create_token(out, LD_TOKEN_ARRAY, cursor_ptr(parser), 1);
             consume(parser);
             break;
         default:;
             if (!is_valid_lisp_symbol_char(c)) {
-                err = SEXPDF_UNEXPECTED_CHAR;
+                err = LD_UNEXPECTED_CHAR;
                 goto BAIL;
             }
 
-            enum sedf_token_type token_type = (c == ':') ? SEXPDF_TOKEN_SYMBOL : SEXPDF_TOKEN_PRIMITIVE;
+            enum ld_token_type token_type = (c == ':') ? LD_TOKEN_SYMBOL : LD_TOKEN_PRIMITIVE;
             create_token(out, token_type, cursor_ptr(parser), 0);
             size_t start = parser->position;
             while (is_valid_lisp_symbol_char(c)) {
@@ -229,7 +229,7 @@ enum sedf_error_type sedf_next(struct sedf_parser *parser, struct sedf_token *ou
             }
         FOUND:
             if (start == parser->position) {
-                err = SEXPDF_UNEXPECTED_EOF;
+                err = LD_UNEXPECTED_EOF;
                 goto BAIL;
             } else {
                 out->start = parser->source + start;
@@ -241,14 +241,14 @@ BAIL:
     return err;
 }
 
-static struct sedf_atom* sedf_create_atom(void) {
-    struct sedf_atom *atom = (struct sedf_atom*)malloc(sizeof(struct sedf_atom));
+static struct ld_atom* ld_create_atom(void) {
+    struct ld_atom *atom = (struct ld_atom*)malloc(sizeof(struct ld_atom));
     if (atom)
-        memset(atom, 0, sizeof(struct sedf_atom));
+        memset(atom, 0, sizeof(struct ld_atom));
     return atom;
 }
 
-static char* sedf_create_string(const char *src, size_t length) {
+static char* ld_create_string(const char *src, size_t length) {
     char *str = (char*)malloc(length + 1);
     if (str) {
         memcpy(str, src, length);
@@ -257,61 +257,61 @@ static char* sedf_create_string(const char *src, size_t length) {
     return str;
 }
 
-static enum sedf_error_type sedf_parse_atom(struct sedf_parser *parser, struct sedf_atom *atom);
+static enum ld_error_type ld_parse_atom(struct ld_parser *parser, struct ld_atom *atom);
 
-static enum sedf_error_type sedf_parse_object(struct sedf_parser *parser, struct sedf_atom *atom) {
-    atom->type = SEXPDF_ATOM_OBJECT;
-    atom->value.object = (struct sedf_object*)malloc(sizeof(struct sedf_object));
+static enum ld_error_type ld_parse_object(struct ld_parser *parser, struct ld_atom *atom) {
+    atom->type = LD_ATOM_OBJECT;
+    atom->value.object = (struct ld_object*)malloc(sizeof(struct ld_object));
     if (!atom->value.object)
-        return SEXPDF_OUT_OF_MEMORY;
+        return LD_OUT_OF_MEMORY;
     atom->value.object->pairs = NULL;
     atom->value.object->count = 0;
     
-    struct sedf_token token;
-    enum sedf_error_type err = SEXPDF_OK;
+    struct ld_token token;
+    enum ld_error_type err = LD_OK;
     size_t capacity = 8;
-    struct sedf_pair *pairs = (struct sedf_pair*)malloc(capacity * sizeof(struct sedf_pair));
+    struct ld_pair *pairs = (struct ld_pair*)malloc(capacity * sizeof(struct ld_pair));
     if (!pairs)
-        return SEXPDF_OUT_OF_MEMORY;
+        return LD_OUT_OF_MEMORY;
 
     while (1) {
-        if ((err = skip_whitespace(parser)) != SEXPDF_OK)
+        if ((err = skip_whitespace(parser)) != LD_OK)
             goto BAIL;
         if (cursor(parser) == ')') {
             consume(parser);
             break;
         }
-        if ((err = sedf_next(parser, &token)) != SEXPDF_OK)
+        if ((err = ld_next(parser, &token)) != LD_OK)
             goto BAIL;
-        if (token.type != SEXPDF_TOKEN_SYMBOL) {
-            err = SEXPDF_UNEXPECTED_TOKEN;
+        if (token.type != LD_TOKEN_SYMBOL) {
+            err = LD_UNEXPECTED_TOKEN;
             goto BAIL;
         }
 
         if (atom->value.object->count >= capacity) {
             capacity *= 2;
-            struct sedf_pair *new_pairs = (struct sedf_pair*)realloc(pairs, capacity * sizeof(struct sedf_pair));
+            struct ld_pair *new_pairs = (struct ld_pair*)realloc(pairs, capacity * sizeof(struct ld_pair));
             if (!new_pairs) {
-                err = SEXPDF_OUT_OF_MEMORY;
+                err = LD_OUT_OF_MEMORY;
                 goto BAIL;
             }
             pairs = new_pairs;
         }
         
-        pairs[atom->value.object->count].key = sedf_create_string(token.start, token.length);
+        pairs[atom->value.object->count].key = ld_create_string(token.start, token.length);
         if (!pairs[atom->value.object->count].key) {
-            err = SEXPDF_OUT_OF_MEMORY;
+            err = LD_OUT_OF_MEMORY;
             goto BAIL;
         }
         
-        struct sedf_atom *value_atom = sedf_create_atom();
+        struct ld_atom *value_atom = ld_create_atom();
         if (!value_atom) {
-            err = SEXPDF_OUT_OF_MEMORY;
+            err = LD_OUT_OF_MEMORY;
             goto BAIL;
         }
         
-        if ((err = sedf_parse_atom(parser, value_atom)) != SEXPDF_OK) {
-            sedf_free(value_atom);
+        if ((err = ld_parse_atom(parser, value_atom)) != LD_OK) {
+            ld_free(value_atom);
             goto BAIL;
         }
         
@@ -321,46 +321,46 @@ static enum sedf_error_type sedf_parse_object(struct sedf_parser *parser, struct
     atom->value.object->pairs = pairs;
 
 BAIL:
-    if (pairs && err != SEXPDF_OK) {
+    if (pairs && err != LD_OK) {
         for (size_t i = 0; i < atom->value.object->count; i++) {
             free((void*)pairs[i].key);
             if (pairs[i].value)
-                sedf_free(pairs[i].value);
+                ld_free(pairs[i].value);
         }
         free(pairs);
     }
     return err;
 }
 
-static enum sedf_error_type sedf_parse_array(struct sedf_parser *parser, struct sedf_atom *atom) {
+static enum ld_error_type ld_parse_array(struct ld_parser *parser, struct ld_atom *atom) {
     size_t capacity = 8;
-    struct sedf_atom **items = NULL;
-    enum sedf_error_type err = SEXPDF_OK;
+    struct ld_atom **items = NULL;
+    enum ld_error_type err = LD_OK;
 
-    atom->type = SEXPDF_ATOM_ARRAY;
-    atom->value.array = (struct sedf_array*)malloc(sizeof(struct sedf_array));
+    atom->type = LD_ATOM_ARRAY;
+    atom->value.array = (struct ld_array*)malloc(sizeof(struct ld_array));
     if (!atom->value.array) {
-        err = SEXPDF_OUT_OF_MEMORY;
+        err = LD_OUT_OF_MEMORY;
         goto BAIL;
     }
     atom->value.array->items = NULL;
     atom->value.array->count = 0;
     
-    struct sedf_token token;
-    if ((err = sedf_next(parser, &token)) != SEXPDF_OK)
+    struct ld_token token;
+    if ((err = ld_next(parser, &token)) != LD_OK)
         goto BAIL;
-    if (token.type != SEXPDF_TOKEN_OBJECT) {
-        err = SEXPDF_UNEXPECTED_TOKEN;
+    if (token.type != LD_TOKEN_OBJECT) {
+        err = LD_UNEXPECTED_TOKEN;
         goto BAIL;
     }
 
-    if (!(items = (struct sedf_atom**)malloc(capacity * sizeof(struct sedf_atom*)))) {
-        err = SEXPDF_OUT_OF_MEMORY;
+    if (!(items = (struct ld_atom**)malloc(capacity * sizeof(struct ld_atom*)))) {
+        err = LD_OUT_OF_MEMORY;
         goto BAIL;
     }
     
     while (1) {
-        if ((err = skip_whitespace(parser)) != SEXPDF_OK)
+        if ((err = skip_whitespace(parser)) != LD_OK)
             goto BAIL;
         
         if (cursor(parser) == ')') {
@@ -370,22 +370,22 @@ static enum sedf_error_type sedf_parse_array(struct sedf_parser *parser, struct 
         
         if (atom->value.array->count >= capacity) {
             capacity *= 2;
-            struct sedf_atom **new_items = (struct sedf_atom**)realloc(items, capacity * sizeof(struct sedf_atom*));
+            struct ld_atom **new_items = (struct ld_atom**)realloc(items, capacity * sizeof(struct ld_atom*));
             if (!new_items) {
-                err = SEXPDF_OUT_OF_MEMORY;
+                err = LD_OUT_OF_MEMORY;
                 goto BAIL;
             }
             items = new_items;
         }
         
-        struct sedf_atom *item_atom = sedf_create_atom();
+        struct ld_atom *item_atom = ld_create_atom();
         if (!item_atom) {
-            err = SEXPDF_OUT_OF_MEMORY;
+            err = LD_OUT_OF_MEMORY;
             goto BAIL;
         }
         
-        if ((err = sedf_parse_atom(parser, item_atom)) != SEXPDF_OK) {
-            sedf_free(item_atom);
+        if ((err = ld_parse_atom(parser, item_atom)) != LD_OK) {
+            ld_free(item_atom);
             goto BAIL;
         }
         
@@ -394,131 +394,131 @@ static enum sedf_error_type sedf_parse_array(struct sedf_parser *parser, struct 
     }
     
     atom->value.array->items = items;
-    return SEXPDF_OK;
+    return LD_OK;
     
 BAIL:
     if (items) {
         for (size_t i = 0; i < atom->value.array->count; i++) {
             if (items[i])
-                sedf_free(items[i]);
+                ld_free(items[i]);
         }
         free(items);
     }
     return err;
 }
 
-static enum sedf_error_type sedf_parse_string(struct sedf_parser *parser, struct sedf_atom *atom, struct sedf_token *token) {
-    atom->type = SEXPDF_ATOM_STRING;
+static enum ld_error_type ld_parse_string(struct ld_parser *parser, struct ld_atom *atom, struct ld_token *token) {
+    atom->type = LD_ATOM_STRING;
     size_t start_pos = parser->position;
     while (!is_eof(parser) && cursor(parser) != '"')
         consume(parser);
     if (is_eof(parser))
-        return SEXPDF_UNEXPECTED_EOF;
+        return LD_UNEXPECTED_EOF;
 
     size_t length = parser->position - start_pos;
-    atom->value.string = sedf_create_string(parser->source + start_pos, length);
+    atom->value.string = ld_create_string(parser->source + start_pos, length);
     if (!atom->value.string)
-        return SEXPDF_OUT_OF_MEMORY;
+        return LD_OUT_OF_MEMORY;
     consume(parser);
-    return SEXPDF_OK;
+    return LD_OK;
 }
 
-static enum sedf_error_type sedf_parse_primitive(struct sedf_parser *parser, struct sedf_atom *atom, struct sedf_token *token) {
+static enum ld_error_type ld_parse_primitive(struct ld_parser *parser, struct ld_atom *atom, struct ld_token *token) {
     if (token->length == 1 && *token->start == 't') {
-        atom->type = SEXPDF_ATOM_BOOLEAN;
+        atom->type = LD_ATOM_BOOLEAN;
         atom->value.boolean = 1;
-        return SEXPDF_OK;
+        return LD_OK;
     }
     if (token->length == 3 && strncmp(token->start, "nil", 3) == 0) {
-        atom->type = SEXPDF_ATOM_NULL;
-        return SEXPDF_OK;
+        atom->type = LD_ATOM_NULL;
+        return LD_OK;
     }
     
     char *endptr;
     double num = strtod(token->start, &endptr);
     if (endptr == token->start + token->length) {
-        atom->type = SEXPDF_ATOM_NUMBER;
+        atom->type = LD_ATOM_NUMBER;
         atom->value.number = num;
-        return SEXPDF_OK;
+        return LD_OK;
     }
     
-    atom->type = SEXPDF_ATOM_SYMBOL;
-    atom->value.symbol = sedf_create_string(token->start, token->length);
+    atom->type = LD_ATOM_SYMBOL;
+    atom->value.symbol = ld_create_string(token->start, token->length);
     if (!atom->value.symbol)
-        return SEXPDF_OUT_OF_MEMORY;
+        return LD_OUT_OF_MEMORY;
 
-    return SEXPDF_OK;
+    return LD_OK;
 }
 
-static enum sedf_error_type sedf_parse_symbol(struct sedf_parser *parser, struct sedf_atom *atom, struct sedf_token *token) {
-    atom->type = SEXPDF_ATOM_SYMBOL;
-    atom->value.symbol = sedf_create_string(token->start, token->length);
+static enum ld_error_type ld_parse_symbol(struct ld_parser *parser, struct ld_atom *atom, struct ld_token *token) {
+    atom->type = LD_ATOM_SYMBOL;
+    atom->value.symbol = ld_create_string(token->start, token->length);
     if (!atom->value.symbol)
-        return SEXPDF_OUT_OF_MEMORY;
-    return SEXPDF_OK;
+        return LD_OUT_OF_MEMORY;
+    return LD_OK;
 }
 
-static enum sedf_error_type sedf_parse_atom(struct sedf_parser *parser, struct sedf_atom *atom) {
-    enum sedf_error_type err = SEXPDF_OK;
-    struct sedf_token token;
+static enum ld_error_type ld_parse_atom(struct ld_parser *parser, struct ld_atom *atom) {
+    enum ld_error_type err = LD_OK;
+    struct ld_token token;
 
-    if ((err = sedf_next(parser, &token)) != SEXPDF_OK)
+    if ((err = ld_next(parser, &token)) != LD_OK)
         return err;
     switch (token.type) {
-        case SEXPDF_TOKEN_OBJECT:
-            return sedf_parse_object(parser, atom);
-        case SEXPDF_TOKEN_ARRAY:
-            return sedf_parse_array(parser, atom);
-        case SEXPDF_TOKEN_STRING:
-            return sedf_parse_string(parser, atom, &token);
-        case SEXPDF_TOKEN_PRIMITIVE:
-            return sedf_parse_primitive(parser, atom, &token);
-        case SEXPDF_TOKEN_SYMBOL:
-            return sedf_parse_symbol(parser, atom, &token);
+        case LD_TOKEN_OBJECT:
+            return ld_parse_object(parser, atom);
+        case LD_TOKEN_ARRAY:
+            return ld_parse_array(parser, atom);
+        case LD_TOKEN_STRING:
+            return ld_parse_string(parser, atom, &token);
+        case LD_TOKEN_PRIMITIVE:
+            return ld_parse_primitive(parser, atom, &token);
+        case LD_TOKEN_SYMBOL:
+            return ld_parse_symbol(parser, atom, &token);
         default:
-            return SEXPDF_UNEXPECTED_TOKEN;
+            return LD_UNEXPECTED_TOKEN;
     }
 }
 
-void sedf_init(struct sedf_parser *parser, const char *source, size_t length) {
+void ld_init(struct ld_parser *parser, const char *source, size_t length) {
     parser->source = source;
     parser->length = length;
     parser->position = 0;
 };
 
-enum sedf_error_type sedf_parse(struct sedf_parser *parser, struct sedf_atom **out, size_t *count) {
-    enum sedf_error_type err = SEXPDF_OK;
+enum ld_error_type ld_parse(struct ld_parser *parser, struct ld_atom **out, size_t *count) {
+    enum ld_error_type err = LD_OK;
     size_t capacity = 8, _count = 0;
-    struct sedf_atom **atoms = (struct sedf_atom**)malloc(capacity * sizeof(struct sedf_atom*));
+    struct ld_atom **atoms = (struct ld_atom**)malloc(capacity * sizeof(struct ld_atom*));
     if (!atoms) {
-        err = SEXPDF_OUT_OF_MEMORY;
+        err = LD_OUT_OF_MEMORY;
         goto BAIL;
     }
 
     for (;;) {
-        if ((err = skip_whitespace(parser)) != SEXPDF_OK)
+        if ((err = skip_whitespace(parser)) != LD_OK)
             goto BAIL;
         if (is_eof(parser))
             break;
 
         if (_count >= capacity) {
             capacity *= 2;
-            struct sedf_atom **new_atoms = (struct sedf_atom**)realloc(atoms, capacity * sizeof(struct sedf_atom*));
+            struct ld_atom **new_atoms = (struct ld_atom**)realloc(atoms, capacity * sizeof(struct ld_atom*));
             if (!new_atoms) {
-                err = SEXPDF_OUT_OF_MEMORY;
+                err = LD_OUT_OF_MEMORY;
                 goto BAIL;
             }
             atoms = new_atoms;
         }
 
-        struct sedf_atom *atom = sedf_create_atom();
+        struct ld_atom *atom = ld_create_atom();
         if (!atom) {
-            err = SEXPDF_OUT_OF_MEMORY;
+            err = LD_OUT_OF_MEMORY;
             goto BAIL;
         }
 
-        if ((err = sedf_parse_atom(parser, atom)) != SEXPDF_OK) {
-            sedf_free(atom);
+        if ((err = ld_parse_atom(parser, atom)) != LD_OK) {
+            ld_free(atom);
             goto BAIL;
         }
 
@@ -527,42 +527,42 @@ enum sedf_error_type sedf_parse(struct sedf_parser *parser, struct sedf_atom **o
     }
 
 BAIL:
-    if (atoms && err != SEXPDF_OK) {
+    if (atoms && err != LD_OK) {
         for (size_t i = 0; i < _count; i++)
-            sedf_free(atoms[i]);
+            ld_free(atoms[i]);
         free(atoms);
     }
     if (out)
-        *out = (struct sedf_atom*)atoms;
+        *out = (struct ld_atom*)atoms;
     if (count)
         *count = _count;
     return err;
 }
 
-void sedf_free(struct sedf_atom *atom) {
+void ld_free(struct ld_atom *atom) {
     if (!atom)
         return;
     switch (atom->type) {
-        case SEXPDF_ATOM_STRING:
+        case LD_ATOM_STRING:
             free(atom->value.string);
             break;
-        case SEXPDF_ATOM_SYMBOL:
+        case LD_ATOM_SYMBOL:
             free(atom->value.symbol);
             break;
-        case SEXPDF_ATOM_OBJECT:
+        case LD_ATOM_OBJECT:
             if (atom->value.object) {
                 for (size_t i = 0; i < atom->value.object->count; i++) {
                     free((void*)atom->value.object->pairs[i].key);
-                    sedf_free(atom->value.object->pairs[i].value);
+                    ld_free(atom->value.object->pairs[i].value);
                 }
                 free(atom->value.object->pairs);
                 free(atom->value.object);
             }
             break;
-        case SEXPDF_ATOM_ARRAY:
+        case LD_ATOM_ARRAY:
             if (atom->value.array) {
                 for (size_t i = 0; i < atom->value.array->count; i++)
-                    sedf_free(atom->value.array->items[i]);
+                    ld_free(atom->value.array->items[i]);
                 free(atom->value.array->items);
                 free(atom->value.array);
             }
@@ -572,4 +572,4 @@ void sedf_free(struct sedf_atom *atom) {
     }
     free(atom);
 }
-#endif // SEXPDF_IMPLEMENTATION
+#endif // LD_IMPLEMENTATION

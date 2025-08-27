@@ -1,4 +1,4 @@
-/* sexpdf -- https://github.com/takeiteasy/sexpdf
+/* ldf -- https://github.com/takeiteasy/ldf
 
  Copyright (C) 2025 George Watson
 
@@ -15,61 +15,61 @@
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <https://www.gnu.org/licenses/>. */
 
-#ifndef SEXPDF_HEADER
-#define SEXPDF_HEADER
+#ifndef LD_HEADER
+#define LD_HEADER
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sedf_parser {
+struct ld_parser {
     unsigned int pos;     /* offset in the SEDF string */
     unsigned int toknext; /* next token to allocate */
     int toksuper;         /* superior token node, e.g. parent object or array */
 };
 
-enum sedf_token_type {
-    SEXPDF_UNDEFINED = 0,
-    SEXPDF_SEXP = 1 << 0,     /* S-expression: (...) */
-    SEXPDF_ARRAY = 1 << 1,    /* Array: #(...) */
-    SEXPDF_STRING = 1 << 2,   /* String: "..." */
-    SEXPDF_PRIMITIVE = 1 << 3 /* Primitive: :keyword, number, symbol */
+enum ld_token_type {
+    LD_UNDEFINED = 0,
+    LD_SEXP = 1 << 0,     /* S-expression: (...) */
+    LD_ARRAY = 1 << 1,    /* Array: #(...) */
+    LD_STRING = 1 << 2,   /* String: "..." */
+    LD_PRIMITIVE = 1 << 3 /* Primitive: :keyword, number, symbol */
 };
 
-enum sedf_err {
+enum ld_err {
     /* Not enough tokens were provided */
-    SEXPDF_ERROR_NOMEM = -1,
+    LD_ERROR_NOMEM = -1,
     /* Invalid character */
-    SEXPDF_ERROR_INVAL = -2,
+    LD_ERROR_INVAL = -2,
     /* The data is not complete, more bytes expected */
-    SEXPDF_ERROR_PART = -3
+    LD_ERROR_PART = -3
 };
 
-struct sedf_token {
-    enum sedf_token_type type;
+struct ld_token {
+    enum ld_token_type type;
     int start;
     int end;
     int size;
     int parent;
 };
 
-void sedf_init(struct sedf_parser *parser);
-int sedf_parse(struct sedf_parser *parser, const char *input, const int input_length, struct sedf_token *tokens, const unsigned int max_tokens);
+void ld_init(struct ld_parser *parser);
+int ld_parse(struct ld_parser *parser, const char *input, const int input_length, struct ld_token *tokens, const unsigned int max_tokens);
 
 #if __cplusplus
 }
 #endif
-#endif // SEXPDF_HEADER
+#endif // LD_HEADER
 
-#ifdef SEXPDF_IMPLEMENTATION
+#ifdef LD_IMPLEMENTATION
 #ifndef NULL
 #define NULL (void*)0
 #endif
 
 /* Allocates a fresh unused token from the token pool. */
-static struct sedf_token *sedf_alloc_token(struct sedf_parser *parser, 
-                                           struct sedf_token *tokens,
+static struct ld_token *ld_alloc_token(struct ld_parser *parser, 
+                                           struct ld_token *tokens,
                                            const int num_tokens) {
-    struct sedf_token *tok;
+    struct ld_token *tok;
     if (parser->toknext >= num_tokens)
         return NULL;
     tok = &tokens[parser->toknext++];
@@ -80,7 +80,7 @@ static struct sedf_token *sedf_alloc_token(struct sedf_parser *parser,
 }
 
 /* Fills token type and boundaries. */
-static void sedf_fill_token(struct sedf_token *token, const enum sedf_token_type type,
+static void ld_fill_token(struct ld_token *token, const enum ld_token_type type,
                             const int start, const int end) {
     token->type = type;
     token->start = start;
@@ -89,10 +89,10 @@ static void sedf_fill_token(struct sedf_token *token, const enum sedf_token_type
 }
 
 /* Fills next available token with primitive. */
-static int sedf_parse_primitive(struct sedf_parser *parser, const char *input,
-                                const int len, struct sedf_token *tokens,
+static int ld_parse_primitive(struct ld_parser *parser, const char *input,
+                                const int len, struct ld_token *tokens,
                                 const int num_tokens) {
-    struct sedf_token *token;
+    struct ld_token *token;
     int start = parser->pos;
     for (; parser->pos < len && input[parser->pos] != '\0'; parser->pos++) {
         switch (input[parser->pos]) {
@@ -109,7 +109,7 @@ static int sedf_parse_primitive(struct sedf_parser *parser, const char *input,
         }
         if (input[parser->pos] < 32 || input[parser->pos] >= 127) {
             parser->pos = start;
-            return SEXPDF_ERROR_INVAL;
+            return LD_ERROR_INVAL;
         }
     }
 
@@ -118,21 +118,21 @@ found:
         parser->pos--;
         return 0;
     }
-    if ((token = sedf_alloc_token(parser, tokens, num_tokens)) == NULL) {
+    if ((token = ld_alloc_token(parser, tokens, num_tokens)) == NULL) {
         parser->pos = start;
-        return SEXPDF_ERROR_NOMEM;
+        return LD_ERROR_NOMEM;
     }
-    sedf_fill_token(token, SEXPDF_PRIMITIVE, start, parser->pos);
+    ld_fill_token(token, LD_PRIMITIVE, start, parser->pos);
     token->parent = parser->toksuper;
     parser->pos--;
     return 0;
 }
 
 /* Fills next token with SEDF string. */
-static int sedf_parse_string(struct sedf_parser *parser, const char *input,
-                             const int len, struct sedf_token *tokens,
+static int ld_parse_string(struct ld_parser *parser, const char *input,
+                             const int len, struct ld_token *tokens,
                              const int num_tokens) {
-    struct sedf_token *token;
+    struct ld_token *token;
     /* Skip starting quote */
     int start = parser->pos++;
 
@@ -143,12 +143,12 @@ static int sedf_parse_string(struct sedf_parser *parser, const char *input,
         if (c == '\"') {
             if (tokens == NULL)
                 return 0;
-            token = sedf_alloc_token(parser, tokens, num_tokens);
+            token = ld_alloc_token(parser, tokens, num_tokens);
             if (token == NULL) {
                 parser->pos = start;
-                return SEXPDF_ERROR_NOMEM;
+                return LD_ERROR_NOMEM;
             }
-            sedf_fill_token(token, SEXPDF_STRING, start + 1, parser->pos);
+            ld_fill_token(token, LD_STRING, start + 1, parser->pos);
             token->parent = parser->toksuper;
             return 0;
         }
@@ -174,7 +174,7 @@ static int sedf_parse_string(struct sedf_parser *parser, const char *input,
                           (input[parser->pos] >= 65 && input[parser->pos] <= 70) ||   /* A-F */
                           (input[parser->pos] >= 97 && input[parser->pos] <= 102))) { /* a-f */
                         parser->pos = start;
-                        return SEXPDF_ERROR_INVAL;
+                        return LD_ERROR_INVAL;
                     }
                     parser->pos++;
                 }
@@ -189,7 +189,7 @@ static int sedf_parse_string(struct sedf_parser *parser, const char *input,
                           (input[parser->pos] >= 65 && input[parser->pos] <= 70) ||   /* A-F */
                           (input[parser->pos] >= 97 && input[parser->pos] <= 102))) { /* a-f */
                         parser->pos = start;
-                        return SEXPDF_ERROR_INVAL;
+                        return LD_ERROR_INVAL;
                     }
                     parser->pos++;
                 }
@@ -198,42 +198,42 @@ static int sedf_parse_string(struct sedf_parser *parser, const char *input,
             /* Unexpected symbol */
             default:
                 parser->pos = start;
-                return SEXPDF_ERROR_INVAL;
+                return LD_ERROR_INVAL;
             }
         }
     }
     parser->pos = start;
-    return SEXPDF_ERROR_PART;
+    return LD_ERROR_PART;
 }
 
-void sedf_init(struct sedf_parser *parser) {
+void ld_init(struct ld_parser *parser) {
     parser->pos = 0;
     parser->toknext = 0;
     parser->toksuper = -1;
 }
 
-int sedf_parse(struct sedf_parser *parser, const char *input, const int input_length, 
-               struct sedf_token *tokens, const unsigned int max_tokens) {
+int ld_parse(struct ld_parser *parser, const char *input, const int input_length, 
+               struct ld_token *tokens, const unsigned int max_tokens) {
     int r, i;
-    struct sedf_token *token;
+    struct ld_token *token;
     int count = parser->toknext;
 
     for (; parser->pos < input_length && input[parser->pos] != '\0'; parser->pos++) {
         char c;
-        enum sedf_token_type type;
+        enum ld_token_type type;
         switch ((c = input[parser->pos])) {
         case '(':
             count++;
             if (tokens == NULL)
                 break;
-            if ((token = sedf_alloc_token(parser, tokens, max_tokens)) == NULL)
-                return SEXPDF_ERROR_NOMEM;
+            if ((token = ld_alloc_token(parser, tokens, max_tokens)) == NULL)
+                return LD_ERROR_NOMEM;
             if (parser->toksuper != -1) {
-                struct sedf_token *t = &tokens[parser->toksuper];
+                struct ld_token *t = &tokens[parser->toksuper];
                 t->size++;
                 token->parent = parser->toksuper;
             }
-            token->type = SEXPDF_SEXP;
+            token->type = LD_SEXP;
             token->start = parser->pos;
             parser->toksuper = parser->toknext - 1;
             break;
@@ -243,8 +243,8 @@ int sedf_parse(struct sedf_parser *parser, const char *input, const int input_le
             for (i = parser->toknext - 1; i >= 0; i--) {
                 token = &tokens[i];
                 if (token->start != -1 && token->end == -1) {
-                    if (token->type != SEXPDF_SEXP && token->type != SEXPDF_ARRAY) {
-                        return SEXPDF_ERROR_INVAL;
+                    if (token->type != LD_SEXP && token->type != LD_ARRAY) {
+                        return LD_ERROR_INVAL;
                     }
                     parser->toksuper = -1;
                     token->end = parser->pos + 1;
@@ -253,7 +253,7 @@ int sedf_parse(struct sedf_parser *parser, const char *input, const int input_le
             }
             /* Error if unmatched closing bracket */
             if (i == -1)
-                return SEXPDF_ERROR_INVAL;
+                return LD_ERROR_INVAL;
             for (; i >= 0; i--) {
                 token = &tokens[i];
                 if (token->start != -1 && token->end == -1) {
@@ -270,21 +270,21 @@ int sedf_parse(struct sedf_parser *parser, const char *input, const int input_le
                     parser->pos++; /* Skip the '(' */
                     break;
                 }
-                if ((token = sedf_alloc_token(parser, tokens, max_tokens)) == NULL) 
-                    return SEXPDF_ERROR_NOMEM;
+                if ((token = ld_alloc_token(parser, tokens, max_tokens)) == NULL) 
+                    return LD_ERROR_NOMEM;
                 
                 if (parser->toksuper != -1) {
-                    struct sedf_token *t = &tokens[parser->toksuper];
+                    struct ld_token *t = &tokens[parser->toksuper];
                     t->size++;
                     token->parent = parser->toksuper;
                 }
-                token->type = SEXPDF_ARRAY;
+                token->type = LD_ARRAY;
                 token->start = parser->pos; /* Start at '#' */
                 parser->toksuper = parser->toknext - 1;
                 parser->pos++; /* Skip the '(' - the main loop will increment pos again */
             } else {
                 /* Treat as primitive if not followed by '(' */
-                if ((r = sedf_parse_primitive(parser, input, input_length, tokens, max_tokens)) < 0)
+                if ((r = ld_parse_primitive(parser, input, input_length, tokens, max_tokens)) < 0)
                     return r;
                 count++;
                 if (parser->toksuper != -1 && tokens != NULL)
@@ -292,7 +292,7 @@ int sedf_parse(struct sedf_parser *parser, const char *input, const int input_le
             }
             break;
         case '\"':
-            if ((r = sedf_parse_string(parser, input, input_length, tokens, max_tokens)) < 0)
+            if ((r = ld_parse_string(parser, input, input_length, tokens, max_tokens)) < 0)
                 return r;
             count++;
             if (parser->toksuper != -1 && tokens != NULL)
@@ -312,7 +312,7 @@ int sedf_parse(struct sedf_parser *parser, const char *input, const int input_le
             break;
         /* Everything else is a primitive (keywords, numbers, symbols) */
         default:
-            if ((r = sedf_parse_primitive(parser, input, input_length, tokens, max_tokens)) < 0)
+            if ((r = ld_parse_primitive(parser, input, input_length, tokens, max_tokens)) < 0)
                 return r;
             count++;
             if (parser->toksuper != -1 && tokens != NULL)
@@ -325,7 +325,7 @@ int sedf_parse(struct sedf_parser *parser, const char *input, const int input_le
     if (tokens != NULL)
         for (i = parser->toknext - 1; i >= 0; i--)
             if (tokens[i].start != -1 && tokens[i].end == -1)
-                return SEXPDF_ERROR_PART;
+                return LD_ERROR_PART;
     return count;
 }
-#endif // SEXPDF_IMPLEMENTATION
+#endif // LD_IMPLEMENTATION

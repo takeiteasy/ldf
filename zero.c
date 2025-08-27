@@ -1,5 +1,5 @@
-#define SEXPDF_IMPLEMENTATION
-#include "sexpdf_zero.h"
+#define LD_IMPLEMENTATION
+#include "ldzero.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,41 +24,41 @@ BAIL:
     return result;
 }
 
-static const char* token_type_to_string(enum sedf_token_type type) {
+static const char* token_type_to_string(enum ld_token_type type) {
     switch (type) {
-        case SEXPDF_SEXP:
+        case LD_SEXP:
             return "SEXP";
-        case SEXPDF_ARRAY:
+        case LD_ARRAY:
             return "ARRAY";
-        case SEXPDF_STRING:
+        case LD_STRING:
             return "STRING";
-        case SEXPDF_PRIMITIVE:
+        case LD_PRIMITIVE:
             return "PRIMITIVE";
         default:
             return "UNDEFINED";
     }
 }
 
-static void print_token(const char *input, struct sedf_token *token) {
+static void print_token(const char *input, struct ld_token *token) {
     int len = token->end - token->start;
     if (len > 0)
         printf("%.*s", len, input + token->start);
 }
 
 int main(int argc, const char *argv[]) {
-    struct sedf_parser parser;
-    struct sedf_token tokens[256];
+    struct ld_parser parser;
+    struct ld_token tokens[256];
     int token_count;
 
     int input_len = 0;
-    const char *input = read_file("test.sedf", (size_t*)&input_len);
+    const char *input = read_file("test.ldf", (size_t*)&input_len);
     if (!input) {
         printf("Failed to read input file\n");
         return 1;
     }
 
-    sedf_init(&parser);
-    if ((token_count = sedf_parse(&parser, input, input_len, tokens, 256)) < 0) {
+    ld_init(&parser);
+    if ((token_count = ld_parse(&parser, input, input_len, tokens, 256)) < 0) {
         printf("Parse error: %d\n", token_count);
         return 1;
     }
